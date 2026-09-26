@@ -201,44 +201,56 @@ separate credentials in CI.
 
 ## BIRD evaluation
 
-SchemaSift includes a built-in BIRD evaluation harness under `evals/bird/` for measuring
+SchemaSift includes a built-in BIRD evaluation harness under `src/evals/bird/` for measuring
 schema selection recall, precision, and reduction against the BIRD benchmark.
 
-### In-Process Library Evaluation (Recommended)
+### 1. Download BIRD Mini-Dev Benchmark
+
+Download `MINIDEV.zip` from the official BIRD package link:
+- **Download link**: [BIRD Mini-Dev SQLite (Google Drive)](https://drive.google.com/file/d/13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG/view)
+- Unzip locally (e.g. into `~/code/minidev`):
+  ```bash
+  mkdir -p ~/code/minidev && unzip MINIDEV.zip -d ~/code/minidev
+  ```
+  This creates `mini_dev_sqlite.json` and the `dev_databases/` SQLite files.
+
+### 2. In-Process Library Evaluation (Recommended)
 
 Run evaluation against BIRD without starting a server:
 
 ```bash
+MINIDEV_DIR="$HOME/code/minidev/MINIDEV"
+
 # Deterministic baseline:
 python3 -m evals.bird.cli evaluate-schemasift \
-  --questions /path/to/mini_dev_sqlite.json \
-  --databases /path/to/dev_databases \
+  --questions "$MINIDEV_DIR/mini_dev_sqlite.json" \
+  --databases "$MINIDEV_DIR/dev_databases" \
   --output runs/mini-dev-lexical.jsonl \
   --adapter lexical --provider-name lexical --no-auth --no-roles
 
 # Hosted Jev:
 export TYPESAFE_API_KEY='...'
 python3 -m evals.bird.cli evaluate-schemasift \
-  --questions /path/to/mini_dev_sqlite.json \
-  --databases /path/to/dev_databases \
+  --questions "$MINIDEV_DIR/mini_dev_sqlite.json" \
+  --databases "$MINIDEV_DIR/dev_databases" \
   --output runs/mini-dev-jev.jsonl \
   --schemasift-config schemasift.yaml \
   --provider-name hosted_jev \
   --limit 10
 ```
 
-### Optional HTTP API Evaluation
+### 3. Optional HTTP API Evaluation
 
 To benchmark via the HTTP API boundary:
 
 ```bash
 python3 -m evals.bird.cli evaluate-schemasift \
-  --questions /path/to/mini_dev_sqlite.json \
-  --databases /path/to/dev_databases \
+  --questions "$MINIDEV_DIR/mini_dev_sqlite.json" \
+  --databases "$MINIDEV_DIR/dev_databases" \
   --output runs/mini-dev-api.jsonl \
   --schemasift-api-url http://127.0.0.1:8080 \
   --provider-name hosted_jev \
   --limit 10
 ```
 
-See [`evals/bird/README.md`](evals/bird/README.md) for full benchmark documentation and details.
+See [`src/evals/bird/README.md`](src/evals/bird/README.md) for full benchmark documentation and details.

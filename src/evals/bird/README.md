@@ -18,43 +18,52 @@ python3 -m pip install -e '.[eval,dev]'
 
 ## Download the benchmark data
 
-The repository does not bundle BIRD's data. For an initial experiment, use the
-official **BIRD Mini-Dev SQLite** package rather than the full 33 GB benchmark.
+The repository does not bundle BIRD's benchmark data (databases and questions).
+For schema selection evaluation, use the official **BIRD Mini-Dev SQLite** package:
 
-The question/SQL records can be downloaded directly through Hugging Face:
+### Direct Download (Complete Package with SQLite Databases)
+
+1. Download `MINIDEV.zip` from the official BIRD Google Drive link:
+   👉 **[BIRD Mini-Dev Google Drive (MINIDEV.zip)](https://drive.google.com/file/d/13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG/view)**
+   *(Also referenced on the official BIRD GitHub repository: [bird-bench/mini_dev](https://github.com/bird-bench/mini_dev#for-new-users))*
+
+2. Unzip into a local directory of your choice (for example `~/code/minidev`):
+   ```bash
+   mkdir -p ~/code/minidev
+   unzip MINIDEV.zip -d ~/code/minidev
+   ```
+
+3. Confirm these files and directories are present:
+   ```text
+   ~/code/minidev/MINIDEV/mini_dev_sqlite.json
+   ~/code/minidev/MINIDEV/dev_databases/<database_id>/<database_id>.sqlite
+   ```
+
+### Alternative: Download Questions Only via Hugging Face
+
+If you only need the question and gold-SQL JSON records:
 
 ```bash
-python3 -m evals.bird.cli download-questions
+python3 -m pip install -e '.[eval]'
+python3 -m evals.bird.cli download-questions --output data/mini_dev_sqlite.json
 ```
 
-This is equivalent to calling `load_dataset("birdsql/bird_mini_dev")` and exports
-the `mini_dev_sqlite` split in the JSON format consumed by this runner.
-
-The Hugging Face dataset contains the records, but not the SQLite database files.
-Download those separately from the complete package linked by the BIRD maintainers:
-
-1. Download the complete Mini-Dev database package from the official BIRD Mini-Dev page:
-   <https://github.com/bird-bench/mini_dev#for-new-users>
-2. Extract it into a local directory (e.g. `/Users/.../MINIDEV`).
-3. Confirm these paths exist:
-
-```text
-<mini_dev_root>/mini_dev_sqlite.json
-<mini_dev_root>/dev_databases/<database_id>/<database_id>.sqlite
-```
+*(Note: Hugging Face provides question records but not the SQLite `.sqlite` databases. The SQLite databases are required to inspect schema tables/columns and execute queries, so download `MINIDEV.zip` above for full evaluation).*
 
 ## Quick start
 
 ```bash
+MINIDEV_DIR="$HOME/code/minidev/MINIDEV"
+
 python3 -m evals.bird.cli inspect \
-  --questions <mini_dev_root>/mini_dev_sqlite.json \
-  --databases <mini_dev_root>/dev_databases \
+  --questions "$MINIDEV_DIR/mini_dev_sqlite.json" \
+  --databases "$MINIDEV_DIR/dev_databases" \
   --limit 3
 
 python3 -m evals.bird.cli run \
-  --questions <mini_dev_root>/mini_dev_sqlite.json \
-  --databases <mini_dev_root>/dev_databases \
-  --config evals/bird/configs/phase1.json \
+  --questions "$MINIDEV_DIR/mini_dev_sqlite.json" \
+  --databases "$MINIDEV_DIR/dev_databases" \
+  --config src/evals/bird/configs/phase1.json \
   --output runs/phase1.jsonl
 ```
 
