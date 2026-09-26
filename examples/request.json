@@ -1,0 +1,36 @@
+{
+  "question": "What is the ratio of customers paying in EUR versus CZK?",
+  "schema": {
+    "database": "payments",
+    "tables": [
+      {
+        "name": "customers",
+        "description": "One row per customer",
+        "grain": "customer",
+        "columns": [
+          {
+            "name": "customer_id",
+            "type": "INTEGER",
+            "description": "Unique customer identifier",
+            "primary_key": true
+          },
+          {
+            "name": "currency",
+            "type": "TEXT",
+            "description": "Preferred billing currency",
+            "samples": ["EUR", "CZK", "USD"]
+          }
+        ]
+      }
+    ],
+    "relationships": []
+  },
+  "options": {
+    "provider": "lexical",
+    "include_roles": false
+  },
+  "trace": {
+    "run_id": "quickstart"
+  }
+}
+
