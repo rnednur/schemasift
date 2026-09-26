@@ -10,13 +10,14 @@ from .models import (
     SelectionOptions,
     TableMetadata,
 )
-from .selector import SchemaSelector
+from .client import SchemaSiftClient
 from .config import load_selector
+from .selector import SchemaSelector
 
 __all__ = [
     "ColumnMetadata", "DatabaseSchema", "Relationship", "Rule",
     "SchemaSelectionRequest", "SchemaSelectionResult", "SchemaSelector",
-    "SelectionOptions", "TableMetadata", "load_selector",
+    "SchemaSiftClient", "SelectionOptions", "TableMetadata", "load_selector",
 ]
 
 __version__ = "0.1.0"
