@@ -1,0 +1,19 @@
+{
+  "run_id": "phase1-local",
+  "sample_size": 100,
+  "strategies": ["baseline_full", "system1_D_plus_P_structural"],
+  "selector": {
+    "backend": "heuristic",
+    "retain": ["D", "P"],
+    "preserve_structural_columns": true,
+    "batching": {"mode": "per_table", "max_columns": 50}
+  },
+  "context": {
+    "include_descriptions": true,
+    "include_samples": true,
+    "include_relationships": true,
+    "sample_limit": 3
+  },
+  "execution": {"timeout_seconds": 30}
+}
+

@@ -189,10 +189,11 @@ SchemaSift normalizes provider responses to `DIRECT`, `POSSIBLE`, and `UNLIKELY`
 probabilities. A provider with meaningfully different request or response semantics
 should receive a code adapter rather than brittle JSON-path configuration.
 
-## Development
+## Development & Testing
 
 ```bash
-python3 -m unittest discover -s tests -v
+# Run all unit tests (including BIRD harness pipeline tests)
+pytest
 ```
 
 Offline tests never require an API key. Live-provider tests should be opt-in and use
@@ -200,6 +201,44 @@ separate credentials in CI.
 
 ## BIRD evaluation
 
-The sibling `bird-jev` repository adapts BIRD schemas into SchemaSift's public models
-and evaluates predictions against labels extracted from gold SQL. Gold SQL is never
-sent to SchemaSift.
+SchemaSift includes a built-in BIRD evaluation harness under `evals/bird/` for measuring
+schema selection recall, precision, and reduction against the BIRD benchmark.
+
+### In-Process Library Evaluation (Recommended)
+
+Run evaluation against BIRD without starting a server:
+
+```bash
+# Deterministic baseline:
+python3 -m evals.bird.cli evaluate-schemasift \
+  --questions /path/to/mini_dev_sqlite.json \
+  --databases /path/to/dev_databases \
+  --output runs/mini-dev-lexical.jsonl \
+  --adapter lexical --provider-name lexical --no-auth --no-roles
+
+# Hosted Jev:
+export TYPESAFE_API_KEY='...'
+python3 -m evals.bird.cli evaluate-schemasift \
+  --questions /path/to/mini_dev_sqlite.json \
+  --databases /path/to/dev_databases \
+  --output runs/mini-dev-jev.jsonl \
+  --schemasift-config schemasift.yaml \
+  --provider-name hosted_jev \
+  --limit 10
+```
+
+### Optional HTTP API Evaluation
+
+To benchmark via the HTTP API boundary:
+
+```bash
+python3 -m evals.bird.cli evaluate-schemasift \
+  --questions /path/to/mini_dev_sqlite.json \
+  --databases /path/to/dev_databases \
+  --output runs/mini-dev-api.jsonl \
+  --schemasift-api-url http://127.0.0.1:8080 \
+  --provider-name hosted_jev \
+  --limit 10
+```
+
+See [`evals/bird/README.md`](evals/bird/README.md) for full benchmark documentation and details.

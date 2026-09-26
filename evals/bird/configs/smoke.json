@@ -1,0 +1,16 @@
+{
+  "run_id": "mini-dev-smoke",
+  "sample_size": 3,
+  "strategies": ["baseline_full", "system1_D_plus_P_structural"],
+  "selector": {
+    "backend": "heuristic",
+    "retain": ["D", "P"],
+    "preserve_structural_columns": true
+  },
+  "context": {
+    "include_descriptions": true,
+    "include_samples": true,
+    "include_relationships": true,
+    "sample_limit": 3
+  }
+}
