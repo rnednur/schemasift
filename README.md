@@ -1,0 +1,205 @@
+# SchemaSift
+
+Fast, provider-neutral schema context selection for AI agents.
+
+SchemaSift is primarily a Python library. It turns a natural-language question and a large database schema into a
+compact, high-recall working schema. It supports hosted Jev, local
+System-One-compatible servers, deterministic offline baselines, and custom providers.
+
+## Use as a Python library (recommended)
+
+```python
+from schemasift import SchemaSelectionRequest, load_selector
+
+async with load_selector("schemasift.yaml") as selector:
+    result = await selector.select(SchemaSelectionRequest(
+        question="Which customers pay in EUR?",
+        schema={"database": "payments", "tables": [...]},
+        options={"provider": "hosted_jev", "include_roles": False},
+    ))
+```
+
+The library path avoids an HTTP hop and is the recommended integration for Python
+applications. Selection, batching, retries, confidence, tracing, and provider adapters
+all live in the library.
+
+## What it guarantees
+
+- Strict JSON request and response contracts.
+- Two-stage table then column selection.
+- Bounded, concurrent column batches (50 candidates and concurrency 4 by default).
+- Structural preservation of primary keys, foreign keys, and selected relationships.
+- Shortest-path relationship bridge tables.
+- Optional multi-label SQL role prediction after column selection.
+- Hard candidate, request, size, timeout, and output-column budgets, plus a
+  provider-reported cost guard between stages.
+- Per-batch traces and replay-friendly decision records.
+- Provider URLs and credentials are deployment configuration, not untrusted request input.
+
+Schema selection is probabilistic and does not guarantee sufficiency. Consumers should
+retain a recovery path that can request hidden metadata.
+
+## Install
+
+```bash
+python3 -m pip install -e '.[server,dev]'
+```
+
+## Configure
+
+```bash
+cp schemasift.example.yaml schemasift.yaml
+```
+
+The example includes three providers:
+
+- `lexical`: offline deterministic smoke tests.
+- `hosted_jev`: TypeSafe's hosted System One endpoint.
+- `local_system_one`: any compatible local `/v1/systemone` server.
+
+Credentials are read from environment variables:
+
+```bash
+export TYPESAFE_API_KEY='...'
+```
+
+Never put API keys in YAML committed to source control.
+
+## Optional API service
+
+```bash
+schemasift --config schemasift.yaml serve
+```
+
+Endpoints:
+
+```text
+GET  /health
+GET  /v1/providers
+POST /v1/schema/select
+GET  /docs
+```
+
+Opening `/` redirects to `/docs`. The service is a thin transport layer over the same
+library and is useful for non-Python clients, centralized credentials, and shared
+enterprise deployments.
+
+## Example request
+
+```json
+{
+  "question": "What is the ratio of customers paying in EUR versus CZK?",
+  "schema": {
+    "database": "payments",
+    "rules": [],
+    "tables": [
+      {
+        "name": "customers",
+        "description": "One row per customer",
+        "grain": "customer",
+        "rules": [],
+        "sample_rows": [],
+        "columns": [
+          {
+            "name": "customer_id",
+            "type": "INTEGER",
+            "description": "Unique customer identifier",
+            "primary_key": true
+          },
+          {
+            "name": "currency",
+            "type": "TEXT",
+            "description": "Billing currency",
+            "samples": ["EUR", "CZK"]
+          }
+        ]
+      }
+    ],
+    "relationships": []
+  },
+  "options": {
+    "provider": "hosted_jev",
+    "preserve_structural_columns": true,
+    "preserve_relationship_bridges": true,
+    "include_roles": false,
+    "batching": {
+      "max_candidates_per_request": 50,
+      "max_questions_per_request": 120,
+      "max_input_bytes": 60000,
+      "concurrency": 4
+    }
+  },
+  "trace": {
+    "run_id": "experiment-001",
+    "question_id": "1471"
+  }
+}
+```
+
+All optional fields have defaults; table and column names are never rewritten in the
+response.
+
+## Command-line selection
+
+```bash
+schemasift --config schemasift.yaml select request.json
+```
+
+Use `-` to read JSON from standard input.
+
+## Batching behavior
+
+A 200-column candidate set with the defaults becomes four concurrent 50-column
+provider requests. Splitting also respects question-count and serialized-byte limits.
+Role classification, when enabled, runs only over retained columns and uses separate
+batches because every column may have multiple roles.
+
+If a provider batch fails, the default is to fail the request. Setting
+`on_partial_failure` to `retain_unevaluated` produces a `partial` response and retains
+every candidate from the failed batch; failed candidates are never silently treated as
+irrelevant.
+
+## Traces
+
+JSONL tracing records:
+
+- request, trace, run, and question identifiers;
+- schema fingerprint and provider identity;
+- candidate IDs and model probabilities;
+- batch latency, model usage, and failures;
+- final selections and structural provenance.
+
+Raw authorization headers are never recorded. Descriptions, samples, and complete
+provider payloads are not emitted by the built-in trace sink.
+
+OpenTelemetry is an optional package boundary for deployments that want distributed
+operational spans; JSONL remains the evaluation/replay source of truth.
+
+## Provider contract
+
+Providers implement two async operations:
+
+```python
+class DecisionProvider(Protocol):
+    async def classify(...): ...
+    async def classify_roles(...): ...
+```
+
+SchemaSift normalizes provider responses to `DIRECT`, `POSSIBLE`, and `UNLIKELY`
+probabilities. A provider with meaningfully different request or response semantics
+should receive a code adapter rather than brittle JSON-path configuration.
+
+## Development
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Offline tests never require an API key. Live-provider tests should be opt-in and use
+separate credentials in CI.
+
+## BIRD evaluation
+
+The sibling `bird-jev` repository adapts BIRD schemas into SchemaSift's public models
+and evaluates predictions against labels extracted from gold SQL. Gold SQL is never
+sent to SchemaSift.
