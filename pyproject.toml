@@ -27,10 +27,11 @@ all = ["schemasift[server,otel,eval,dev]"]
 
 [project.scripts]
 schemasift = "schemasift.cli:main"
+bird-context = "evals.bird.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests", "evals/bird/tests"]
+testpaths = ["tests", "src/evals/bird/tests"]
